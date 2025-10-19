@@ -1,30 +1,33 @@
-# Use precompiled GDAL wheel to avoid apt ODBC issues
---find-links=https://girder.github.io/large_image_wheels GDAL==3.8.2
+# ───────────── Girder prebuilt wheels for Python 3.11 ─────────────
+--find-links https://girder.github.io/large_image_wheels
+GDAL
+
+# Core packages from your example
+geopandas
+leafmap
+owslib
+streamlit
 
 # ───────────── Dashboard & UI ─────────────
-streamlit==1.30.0
-rich==13.5.2
+streamlit-folium==0.14.0
+rich==14.2.0
 markdown-it-py==4.0.0
 mdurl==0.1.2
 pygments==2.19.2
-streamlit-folium==0.14.0
 plotly==5.18.0
 
 # ───────────── Scientific Core ─────────────
-numpy==1.26.0
-pandas==2.1.1
+numpy==1.25.2
+pandas==2.1.0
 xarray==2025.3.1
 matplotlib==3.8.0
 Pillow==10.2.0
 
 # ───────────── Geospatial Stack ─────────────
-geopandas==0.15.1
-rioxarray==0.20.1
-shapely==2.1.1
-fiona==1.9.6
-pyproj==3.7.1
+rioxarray==0.19.0
+shapely==2.0.2
+fiona==1.9.5
+pyproj==3.6.1
 folium==0.16.0
-leafmap==0.32.0
-geopy==2.5.0
-rasterio==1.5.0
-owslib==0.30.0
+geopy==2.4.1
+rasterio==1.4.3
