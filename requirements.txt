@@ -1,30 +1,23 @@
-# Core
+# Streamlit app
 streamlit==1.30.0
+rich<14  # To satisfy Streamlit 1.30.0 dependency
+markdown-it-py==4.0.0
+mdurl==0.1.2
+pygments==2.19.2
 
-# Data handling
+# Data
+numpy==1.25.2
 pandas==2.0.3
-numpy==1.26.5
 
-# Mapping
-folium>=0.19.1
+# Mapping / GIS
+folium==0.19.1
 geopandas==1.2.1
 shapely==2.1.1
-fiona==1.9.4
+pyproj==3.6.0
 
 # Visualization
 matplotlib==3.8.0
-seaborn==0.12.3
 plotly==5.17.0
 
 # Utilities
-pyproj==3.6.0
 requests==2.31.0
-scipy==1.11.1
-
-# Markdown & rich text for Streamlit
-rich==14.2.0
-markdown-it-py==4.0.0
-mdurl==0.1.2
-
-# Optional: caching & performance
-pillow==10.1.0
