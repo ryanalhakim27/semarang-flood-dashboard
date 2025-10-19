@@ -1,4 +1,0 @@
-build-essential
-pkg-config
-gdal-bin
-proj-bin
