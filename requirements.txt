@@ -26,3 +26,4 @@ folium==0.16.0
 leafmap==0.30.0
 geopy==2.4.1
 rasterio==1.4.3
+owslib==0.29.2
