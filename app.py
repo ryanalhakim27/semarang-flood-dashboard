@@ -153,14 +153,14 @@ flood_map_df['hover_text'] = (
 
 st.markdown(
     """
-    <h2 id="flood_overview" style="
+    <div id="flood_overview" style="
         margin-top:50px; 
         font-size: clamp(20px, 4vw, 32px);
         font-weight: bold;
         line-height: 1.2;
     ">
         Flood Incidents & Rainfall Overview
-    </h2>
+    </div>
     """,
     unsafe_allow_html=True
 )
@@ -362,7 +362,7 @@ st.markdown(
 
 st.markdown(
     """
-    <div id="kalibabon" style="
+    <div style="
         max-width:90%;
         margin:20px auto; 
         line-height:1.8; 
@@ -845,7 +845,7 @@ st.sidebar.markdown(
                 </a>
             </li>
             <li>
-                <a href="#kalibabon" style="
+                <a href="#kalibabon-section" style="
                     color:white; 
                     text-decoration:none; 
                     display:block; 
