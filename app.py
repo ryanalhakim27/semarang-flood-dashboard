@@ -269,7 +269,7 @@ for _, row in flood_to_plot.iterrows():
     ).add_to(m)
 
 # Adjust map container width for responsiveness
-st_folium(m, width="100%", height=500)
+st_folium(m, width=800, height=500)
 
 
 st.subheader("📈 Rainfall Trends")
