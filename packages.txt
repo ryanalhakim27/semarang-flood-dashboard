@@ -1,2 +1,5 @@
 gdal-bin
 libgdal-dev
+libspatialindex-dev
+proj-bin
+pkg-config
