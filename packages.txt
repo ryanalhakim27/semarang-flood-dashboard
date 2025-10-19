@@ -1,4 +1,2 @@
-gdal-bin
-libgdal-dev
 build-essential
 pkg-config
