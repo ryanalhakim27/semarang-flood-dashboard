@@ -1,5 +1,2 @@
-gdal-bin
-libgdal-dev
-libspatialindex-dev
-proj-bin
+build-essential
 pkg-config
