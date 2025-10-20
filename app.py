@@ -118,13 +118,6 @@ with st.sidebar:
     st.markdown('<hr style="margin-top:50px; margin-bottom:50px;">', unsafe_allow_html=True)
 
     # -----------------------------
-    # Dashboard Metrics
-    # -----------------------------
-    st.markdown("## 📊 Dashboard Metrics", unsafe_allow_html=True)
-    st.metric("Flood Incidents", len(flood_map_df))
-    st.metric("Stations", len(station_map_df) - 1)
-
-    # -----------------------------
     # Map Interaction Toggle
     # -----------------------------
     enable_map_interaction = st.checkbox("🗺️ Enable Map Zoom & Drag", value=False)
