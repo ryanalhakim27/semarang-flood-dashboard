@@ -341,7 +341,7 @@ fig.update_layout(
     yaxis_title="Rainfall (mm)",
     height=1000,
     width=1200,
-    showlegend=True
+    showlegend=False
 )
 fig.update_xaxes(tickangle=45)
 fig.update_layout(xaxis_rangeslider_visible=True)
