@@ -470,7 +470,7 @@ show_river = st.checkbox("Show River Network", value=True)
 # -----------------------------
 # Initialize Folium Map
 # -----------------------------
-m = folium.Map(location=[-7.1, 110.45], zoom_start=13, tiles='Cartodb Positron')
+m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron')
 
 # -----------------------------
 # Raster-to-PNG conversion with caching
@@ -547,7 +547,7 @@ if show_river:
 # -----------------------------
 # Display Folium Map
 # -----------------------------
-st_folium(m,width=None, height=800)
+st_folium(m,width=None, height=600)
 
 # -----------------------------
 # Optional: Clean up temp PNGs (comment out if debugging)
@@ -743,7 +743,7 @@ if show_q:
 # -----------------------------
 # Display Folium map
 # -----------------------------
-st_folium(m_rpi, width=None, height=800)
+st_folium(m_rpi, width=None, height=600)
 
 # -----------------------------
 # Dropdown to select legend type
@@ -905,7 +905,7 @@ folium.GeoJson(
 ).add_to(m)
 
 # Render map
-st_folium(m,width=None, height=1000)
+st_folium(m,width=None, height=600)
 
 st.markdown(
     """
