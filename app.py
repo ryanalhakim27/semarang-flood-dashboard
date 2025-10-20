@@ -336,6 +336,23 @@ fig = px.line(
     markers=True
 )
 
+# Disable interactions if zoom not enabled
+if not enable_map_interaction:
+    fig.update_layout(
+        dragmode=False,  # disables drag
+    )
+    config = {
+        "scrollZoom": False, 
+        "doubleClick": "reset",
+        "displayModeBar": False  # hides toolbar for clean view
+    }
+else:
+    config = {
+        "scrollZoom": True,
+        "displayModeBar": True,
+        "modeBarButtonsToRemove": ["select2d", "lasso2d"]
+    }
+
 fig.update_layout(
     xaxis_title="Date",
     yaxis_title="Rainfall (mm)",
@@ -346,7 +363,7 @@ fig.update_layout(
 fig.update_xaxes(tickangle=45)
 fig.update_layout(xaxis_rangeslider_visible=True)
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True,config=config)
 
 
 
