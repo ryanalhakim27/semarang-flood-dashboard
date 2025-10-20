@@ -249,9 +249,9 @@ else:
     center_lat = station_map_df['lat'].mean()
     center_lon = station_map_df['lon'].mean()
 
-enable_map_interaction = st.checkbox("🗺️ Enable map zoom & drag", value=False)
-m = folium.Map(location=[center_lat, center_lon], zoom_start=11, scrollWheelZoom=enable_map_interaction,
-    dragging=enable_map_interaction, tiles="OpenStreetMap")
+enable_map_interaction_flood = st.checkbox("🗺️ Enable map zoom & drag", value=False)
+m = folium.Map(location=[center_lat, center_lon], zoom_start=11, scrollWheelZoom=enable_map_interaction_flood,
+    dragging=enable_map_interaction_flood, tiles="OpenStreetMap")
 
 # Add stations
 for _, row in station_map_df.iterrows():
@@ -472,7 +472,9 @@ show_river = st.checkbox("Show River Network", value=True)
 # -----------------------------
 # Initialize Folium Map
 # -----------------------------
-m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron')
+enable_map_interaction_lulc = st.checkbox("🗺️ Enable map zoom & drag", value=False)
+m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron', scrollWheelZoom=enable_map_interaction_lulc,
+    dragging=enable_map_interaction_lulc)
 
 # -----------------------------
 # Raster-to-PNG conversion with caching
@@ -676,7 +678,9 @@ show_q = st.checkbox("Show Q Map", value=True)
 # -----------------------------
 # Initialize Folium Map
 # -----------------------------
-m_rpi = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron')
+enable_map_interaction_rpi = st.checkbox("🗺️ Enable map zoom & drag", value=False)
+m_rpi = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron',scrollWheelZoom=enable_map_interaction_rpi,
+    dragging=enable_map_interaction_rpi)
 
 # -----------------------------
 # Cached raster → PNG converter
@@ -881,7 +885,9 @@ for feature in basins_geojson['features']:
 # Create Folium Map
 # ----------------------------
 st.subheader("Half-Basin Map (Mean Q)")
-m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='OpenStreetMap')
+enable_map_interaction_basin = st.checkbox("🗺️ Enable map zoom & drag", value=False)
+m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='OpenStreetMap',scrollWheelZoom=enable_map_interaction_basin,
+    dragging=enable_map_interaction_basin)
 
 # Define tooltip with all statistics
 tooltip = folium.GeoJsonTooltip(
