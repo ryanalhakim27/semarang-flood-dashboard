@@ -674,7 +674,7 @@ show_q = st.checkbox("Show Q Map", value=True)
 # -----------------------------
 # Initialize Folium Map
 # -----------------------------
-m_rpi = folium.Map(location=[-7.1, 110.45], zoom_start=13, tiles='Cartodb Positron')
+m_rpi = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron')
 
 # -----------------------------
 # Cached raster → PNG converter
@@ -879,7 +879,7 @@ for feature in basins_geojson['features']:
 # Create Folium Map
 # ----------------------------
 st.subheader("Half-Basin Map (Mean Q)")
-m = folium.Map(location=[-7.1, 110.45], zoom_start=13, tiles='OpenStreetMap')
+m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='OpenStreetMap')
 
 # Define tooltip with all statistics
 tooltip = folium.GeoJsonTooltip(
