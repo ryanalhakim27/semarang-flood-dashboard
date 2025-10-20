@@ -249,7 +249,9 @@ else:
     center_lat = station_map_df['lat'].mean()
     center_lon = station_map_df['lon'].mean()
 
-m = folium.Map(location=[center_lat, center_lon], zoom_start=11, tiles="OpenStreetMap")
+enable_map_interaction = st.checkbox("🗺️ Enable map zoom & drag", value=False)
+m = folium.Map(location=[center_lat, center_lon], zoom_start=11, scrollWheelZoom=enable_map_interaction,
+    dragging=enable_map_interaction, tiles="OpenStreetMap")
 
 # Add stations
 for _, row in station_map_df.iterrows():
