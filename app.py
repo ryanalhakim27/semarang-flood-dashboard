@@ -58,31 +58,77 @@ buffered = BytesIO()
 logo.save(buffered, format="PNG")
 img_str = base64.b64encode(buffered.getvalue()).decode()
 
-# Logo (centered, responsive)
-st.sidebar.markdown(
-    f"""
-    <p style="text-align:center;">
-        <img src="data:image/png;base64,{img_str}" style="max-width:80%; height:auto; margin-bottom:20px;"/>
+with st.sidebar:
+    # -----------------------------
+    # Logo (centered, responsive)
+    # -----------------------------
+    st.markdown(
+        f"""
+        <p style="text-align:center;">
+            <img src="data:image/png;base64,{img_str}" style="max-width:80%; height:auto; margin-bottom:20px;"/>
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # -----------------------------
+    # Sidebar Branding
+    # -----------------------------
+    st.markdown("""
+    <p style="text-align:center; font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', Helvetica, Arial, sans-serif; margin:0;">
+        <span style="display:block; font-size:clamp(18px, 2.5vw, 24px); font-weight:bold; margin-bottom:4px;">TitikTahan</span>
+        <span style="display:block; font-size:clamp(14px, 2vw, 20px); font-weight:bold; margin-bottom:6px;">Resilience Points</span>
+        <span style="display:block; font-size:clamp(12px, 1.5vw, 16px); margin-bottom:4px;">Mapping slopes, sediments & survival</span>
+        <span style="display:block; font-size:clamp(12px, 1.5vw, 16px); font-weight:bold; margin-bottom:12px;">Land • Water • City • People</span>
     </p>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
 
-# Sidebar branding (responsive fonts)
-st.sidebar.markdown("""
-<p style="text-align:center; font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', Helvetica, Arial, sans-serif; margin:0;">
-    <span style="display:block; font-size:clamp(18px, 2.5vw, 24px); font-weight:bold; margin-bottom:4px;">TitikTahan</span>
-    <span style="display:block; font-size:clamp(14px, 2vw, 20px); font-weight:bold; margin-bottom:6px;">Resilience Points</span>
-    <span style="display:block; font-size:clamp(12px, 1.5vw, 16px); margin-bottom:4px;">Mapping slopes, sediments & survival</span>
-    <span style="display:block; font-size:clamp(12px, 1.5vw, 16px); font-weight:bold; margin-bottom:12px;">Land • Water • City • People</span>
-</p>
-""", unsafe_allow_html=True)
+    # -----------------------------
+    # Instagram Link
+    # -----------------------------
+    st.markdown(
+        '<p style="text-align:center; font-size:clamp(12px, 1.5vw, 16px); margin-top:8px;"><a href="https://www.instagram.com/titiktahan/" target="_blank" style="text-decoration:none;">📸 Follow us on Instagram</a></p>',
+        unsafe_allow_html=True
+    )
 
-# Instagram link (responsive)
-st.sidebar.markdown(
-    '<p style="text-align:center; font-size:clamp(12px, 1.5vw, 16px); margin-top:8px;"><a href="https://www.instagram.com/titiktahan/" target="_blank" style="text-decoration:none;">📸 Follow us on Instagram</a></p>',
-    unsafe_allow_html=True
-)
+    # -----------------------------
+    # Navigation Links
+    # -----------------------------
+    st.markdown(
+        """
+        <div style="color:white; font-size:1rem; font-family:sans-serif;">
+            <h3 style="margin-bottom:15px; border-bottom:1px solid white; padding-bottom:5px;">Navigation</h3>
+            <ul style="list-style-type:none; padding-left:0; line-height:2;">
+                <li><a href="#flood_overview" style="color:white; text-decoration:none; display:block; padding:5px 0; transition:0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">Flood Incident, Rainfall Chart and Climate Station Location</a></li>
+                <li><a href="#kalibabon-section" style="color:white; text-decoration:none; display:block; padding:5px 0; transition:0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">Kali Babon Watershed Analysis</a></li>
+                <li><a href="#streamnetwork" style="color:white; text-decoration:none; display:block; padding:5px 0; transition:0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">Stream Network Configuration</a></li>
+                <li><a href="#lulcstatus" style="color:white; text-decoration:none; display:block; padding:5px 0; transition:0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">LULC Status and Slope</a></li>
+                <li><a href="#rpi_q" style="color:white; text-decoration:none; display:block; padding:5px 0; transition:0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">RPI, Rainfall, and Runoff (Q)</a></li>
+                <li><a href="#q_analysis" style="color:white; text-decoration:none; display:block; padding:5px 0; transition:0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">Half-Basin Runoff (Q) Statistics</a></li>
+                <li><a href="#methodology" style="color:white; text-decoration:none; display:block; padding:5px 0; font-weight:bold; transition:0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">Methodology</a></li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # -----------------------------
+    # Separator
+    # -----------------------------
+    st.markdown('<hr style="margin-top:50px; margin-bottom:50px;">', unsafe_allow_html=True)
+
+    # -----------------------------
+    # Dashboard Metrics
+    # -----------------------------
+    st.markdown("## 📊 Dashboard Metrics", unsafe_allow_html=True)
+    st.metric("Flood Incidents", len(flood_map_df))
+    st.metric("Stations", len(station_map_df) - 1)
+
+    # -----------------------------
+    # Map Interaction Toggle
+    # -----------------------------
+    enable_map_interaction = st.checkbox("🗺️ Enable Map Zoom & Drag", value=False)
+
 
 
 # ==========================================================
@@ -249,9 +295,9 @@ else:
     center_lat = station_map_df['lat'].mean()
     center_lon = station_map_df['lon'].mean()
 
-enable_map_interaction_flood = st.checkbox("🗺️ Enable map zoom & drag", value=False)
-m = folium.Map(location=[center_lat, center_lon], zoom_start=11, scrollWheelZoom=enable_map_interaction_flood,
-    dragging=enable_map_interaction_flood, tiles="OpenStreetMap")
+
+m = folium.Map(location=[center_lat, center_lon], zoom_start=11, scrollWheelZoom=enable_map_interaction,
+    dragging=enable_map_interaction, tiles="OpenStreetMap")
 
 # Add stations
 for _, row in station_map_df.iterrows():
@@ -472,9 +518,9 @@ show_river = st.checkbox("Show River Network", value=True)
 # -----------------------------
 # Initialize Folium Map
 # -----------------------------
-enable_map_interaction_lulc = st.checkbox("🗺️ Enable map zoom & drag", value=False)
-m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron', scrollWheelZoom=enable_map_interaction_lulc,
-    dragging=enable_map_interaction_lulc)
+
+m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron', scrollWheelZoom=enable_map_interaction,
+    dragging=enable_map_interaction)
 
 # -----------------------------
 # Raster-to-PNG conversion with caching
@@ -678,9 +724,9 @@ show_q = st.checkbox("Show Q Map", value=True)
 # -----------------------------
 # Initialize Folium Map
 # -----------------------------
-enable_map_interaction_rpi = st.checkbox("🗺️ Enable map zoom & drag", value=False)
-m_rpi = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron',scrollWheelZoom=enable_map_interaction_rpi,
-    dragging=enable_map_interaction_rpi)
+
+m_rpi = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='Cartodb Positron',scrollWheelZoom=enable_map_interaction,
+    dragging=enable_map_interaction)
 
 # -----------------------------
 # Cached raster → PNG converter
@@ -885,9 +931,9 @@ for feature in basins_geojson['features']:
 # Create Folium Map
 # ----------------------------
 st.subheader("Half-Basin Map (Mean Q)")
-enable_map_interaction_basin = st.checkbox("🗺️ Enable map zoom & drag", value=False)
-m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='OpenStreetMap',scrollWheelZoom=enable_map_interaction_basin,
-    dragging=enable_map_interaction_basin)
+
+m = folium.Map(location=[-7.1, 110.45], zoom_start=12, tiles='OpenStreetMap',scrollWheelZoom=enable_map_interaction,
+    dragging=enable_map_interaction)
 
 # Define tooltip with all statistics
 tooltip = folium.GeoJsonTooltip(
@@ -1011,103 +1057,3 @@ st.markdown(
 )
 
 
-
-
-
-# Sidebar navigation
-st.sidebar.markdown(
-    """
-    <div style="color:white; font-size:1rem; font-family:sans-serif;">
-        <h3 style="margin-bottom:15px; border-bottom:1px solid white; padding-bottom:5px;">Navigation</h3>
-        <ul style="list-style-type:none; padding-left:0; line-height:2;">
-            <li>
-                <a href="#flood_overview" style="
-                    color:white; 
-                    text-decoration:none; 
-                    display:block; 
-                    padding:5px 0; 
-                    transition:0.3s;
-                " onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">
-                    Flood Incident, Rainfall Chart and Climate Station Location
-                </a>
-            </li>
-            <li>
-                <a href="#kalibabon-section" style="
-                    color:white; 
-                    text-decoration:none; 
-                    display:block; 
-                    padding:5px 0; 
-                    transition:0.3s;
-                " onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">
-                    Kali Babon Watershed Analysis
-                </a>
-            </li>
-            <li>
-                <a href="#streamnetwork" style="
-                    color:white; 
-                    text-decoration:none; 
-                    display:block; 
-                    padding:5px 0; 
-                    transition:0.3s;
-                " onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">
-                    Stream Network Configuration
-                </a>
-            </li>
-            <li>
-                <a href="#lulcstatus" style="
-                    color:white; 
-                    text-decoration:none; 
-                    display:block; 
-                    padding:5px 0; 
-                    transition:0.3s;
-                " onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">
-                    LULC Status and Slope
-                </a>
-            </li>
-            <li>
-                <a href="#rpi_q" style="
-                    color:white; 
-                    text-decoration:none; 
-                    display:block; 
-                    padding:5px 0; 
-                    transition:0.3s;
-                " onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">
-                    RPI, Rainfall, and Runoff (Q)
-                </a>
-            </li>
-            <li>
-                <a href="#q_analysis" style="
-                    color:white; 
-                    text-decoration:none; 
-                    display:block; 
-                    padding:5px 0; 
-                    transition:0.3s;
-                " onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">
-                    Half-Basin Runoff (Q) Statistics
-                </a>
-            </li>
-            <li>
-                <a href="#methodology" style="
-                    color:white; 
-                    text-decoration:none; 
-                    display:block; 
-                    padding:5px 0; 
-                    font-weight:bold;
-                    transition:0.3s;
-                " onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='white'">
-                    Methodology
-                </a>
-            </li>
-        </ul>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
-
-# Separator
-st.sidebar.markdown('<hr style="margin-top:50px; margin-bottom:50px;">', unsafe_allow_html=True)
-st.sidebar.markdown("## 📊 Dashboard Metrics", unsafe_allow_html=True)
-st.sidebar.metric("Flood Incidents", len(flood_map_df))
-st.sidebar.metric("Stations", len(station_map_df)-1)
