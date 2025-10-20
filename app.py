@@ -2,18 +2,20 @@
 # 🌊 Semarang Flood–Rainfall Dashboard + LULC Map Viewer
 # ==========================================================
 
+
+import rasterio
+import numpy as np
+import tempfile
+import os
+import json
 import streamlit as st
 import pandas as pd
 import folium
+from folium.raster_layers import ImageOverlay
 from streamlit_folium import st_folium
 import plotly.express as px
-import geopandas as gpd
-import os
 from geopy.distance import geodesic
-import leafmap.foliumap as leafmap
 from datetime import datetime
-import matplotlib.cm as cm
-import matplotlib.colors as colors
 from PIL import Image
 import base64
 from io import BytesIO
@@ -90,9 +92,9 @@ st.sidebar.markdown(
 def load_data():
     flood_path = "data/flood_data_with_latlon.csv"
     rain_path = "data/rainfall_data_filtered.csv"
-    watershed_path = "data/kali_babon_watershed.geojson"
 
-    for path in [flood_path, rain_path, watershed_path]:
+
+    for path in [flood_path, rain_path]:
         if not os.path.exists(path):
             st.error(f"❌ File not found: {path}")
             st.stop()
@@ -100,8 +102,8 @@ def load_data():
     flood_df = pd.read_csv(flood_path)
     rain_df = pd.read_csv(rain_path)
 
-    flood_df['date'] = pd.to_datetime(flood_df['date'], errors='coerce')
-    rain_df['date'] = pd.to_datetime(rain_df['date'], errors='coerce')
+    flood_df['date'] = pd.to_datetime(flood_df['date'], format="%m/%d/%y", errors='coerce')
+    rain_df['date'] = pd.to_datetime(rain_df['date'], format="%m/%d/%y", errors='coerce')
 
     flood_df['lat'] = pd.to_numeric(flood_df['lat'], errors='coerce')
     flood_df['lon'] = pd.to_numeric(flood_df['lon'], errors='coerce')
@@ -111,13 +113,13 @@ def load_data():
     rain_df['Lon_DD'] = pd.to_numeric(rain_df['Lon_DD'], errors='coerce')
     rain_df = rain_df.dropna(subset=['Lat_DD', 'Lon_DD'])
 
-    watershed_gdf = gpd.read_file(watershed_path)
-    if watershed_gdf.crs is not None and watershed_gdf.crs.to_epsg() != 4326:
-        watershed_gdf = watershed_gdf.to_crs(epsg=4326)
+    rain_df = rain_df.dropna(subset=['date'])
+    flood_df = flood_df.dropna(subset=['date'])
 
-    return flood_df, rain_df, watershed_gdf
 
-flood_df, rain_df, watershed_gdf = load_data()
+    return flood_df, rain_df
+
+flood_df, rain_df = load_data()
 
 # ==========================================================
 # Prepare Map Data
@@ -269,68 +271,42 @@ for _, row in flood_to_plot.iterrows():
     ).add_to(m)
 
 # Adjust map container width for responsiveness
-st_folium(m, width=800, height=500)
+st_folium(m, width=None, height=500)
 
 
 st.subheader("📈 Rainfall Trends")
 
-# Filter data by selected station
-rain_plot_df = rain_df if selected_station == "All Stations" else rain_df[rain_df['location_name']==selected_station]
-
-# Base line chart
-fig = px.line(
-    rain_plot_df, x='date', y='rainfall(mm)', color='location_name',
-    title="Daily Rainfall (mm)", markers=True
+# Filter data by selected station and make a copy
+rain_plot_df = (
+    rain_df.copy() if selected_station == "All Stations" 
+    else rain_df[rain_df['location_name'] == selected_station].copy()
 )
 
-# Define rainfall classes (example)
-rainfall_classes = [
-    {"name": "Very Low", "min": 0, "max": 2, "color": "rgba(198, 239, 206, 0.3)"},
-    {"name": "Low", "min": 2, "max": 5, "color": "rgba(255, 235, 156, 0.3)"},
-    {"name": "Moderate", "min": 5, "max": 15, "color": "rgba(255, 198, 198, 0.3)"},
-    {"name": "High", "min": 15, "max": 25, "color": "rgba(255, 102, 102, 0.3)"},
-    {"name": "Very High", "min": 25, "max": rain_plot_df['rainfall(mm)'].max(), "color": "rgba(204, 0, 0, 0.3)"},
-]
+# Drop invalid rows
+rain_plot_df = rain_plot_df.dropna(subset=['date', 'rainfall(mm)'])
 
-# Add shaded areas for each rainfall class
-for cls in rainfall_classes:
-    fig.add_shape(
-        type="rect",
-        xref="paper",
-        yref="y",
-        x0=0,
-        x1=1,
-        y0=cls["min"],
-        y1=cls["max"],
-        fillcolor=cls["color"],
-        layer="below",
-        line_width=0,
-    )
-    # Optional: add annotation in the middle of the area
-    fig.add_annotation(
-        x=rain_plot_df['date'].min(),
-        y=(cls["min"] + cls["max"]) / 2,
-        xref="x",
-        yref="y",
-        text=cls["name"],
-        showarrow=False,
-        font=dict(size=10, color="black"),
-        bgcolor="rgba(255,255,255,0.5)"
-    )
+# Plot raw daily rainfall as line chart
+fig = px.line(
+    rain_plot_df,
+    x='date',
+    y='rainfall(mm)',
+    color='location_name',
+    title="Daily Rainfall (mm)",
+    markers=True
+)
 
 fig.update_layout(
     xaxis_title="Date",
     yaxis_title="Rainfall (mm)",
-    yaxis=dict(range=[0, rain_plot_df['rainfall(mm)'].max() + 5]),
     height=1000,
-    width=2000,
-    showlegend=False  
+    width=1200,
+    showlegend=True
 )
-
 fig.update_xaxes(tickangle=45)
 fig.update_layout(xaxis_rangeslider_visible=True)
 
 st.plotly_chart(fig, use_container_width=True)
+
 
 
 # ----------------------------------------------
@@ -450,24 +426,18 @@ st.markdown(
 
 
 # -----------------------------
-# Slope-LULC-River Section
+# LULC–Slope–River Overlay Map
 # -----------------------------
 st.subheader("LULC–Slope–River Overlay Map")
 
-# ----------------------------
-# Initialize Leafmap
-# ----------------------------
-m = leafmap.Map(center=[-7.1, 110.45], zoom=11, tiles='Cartodb Positron')
-
-# ----------------------------
-# Add Slope Raster
-# ----------------------------
+# -----------------------------
+# Raster File Paths
+# -----------------------------
+@st.cache_data
+def load_geojson(path):
+    with open(path) as f:
+        return json.load(f)
 slope_tif = "data/slope_map.tif"
-m.add_raster(slope_tif, layer_name="Slope Map", opacity=0.9)
-
-# ----------------------------
-# LULC Multi-Year Raster
-# ----------------------------
 lulc_files = {
     "2020-09-15": "data/lulc_2020_styled.tif",
     "2021-09-30": "data/lulc_2021_styled.tif",
@@ -475,7 +445,11 @@ lulc_files = {
     "2023-09-20": "data/lulc_2023_styled.tif",
     "2025-08-15": "data/lulc_2025_styled.tif",
 }
+river_geojson = load_geojson("data/babon_channel.geojson")
 
+# -----------------------------
+# LULC Year Selection
+# -----------------------------
 available_years = sorted({int(d.split("-")[0]) for d in lulc_files.keys()})
 selected_year = st.select_slider(
     "🗓️ Select LULC Year",
@@ -486,27 +460,105 @@ selected_date = next(d for d in lulc_files.keys() if int(d.split("-")[0]) == sel
 lulc_tif = lulc_files[selected_date]
 st.markdown(f"<p style='text-align:center;'>Selected LULC date: <b>{selected_date}</b></p>", unsafe_allow_html=True)
 
-m.add_raster(lulc_tif, layer_name=f"LULC {selected_date}", opacity=0.6)
+# -----------------------------
+# Layer Checkboxes
+# -----------------------------
+show_slope = st.checkbox("Show Slope Map", value=True)
+show_lulc = st.checkbox("Show LULC Map", value=True)
+show_river = st.checkbox("Show River Network", value=True)
 
-# ----------------------------
-# River Raster
-# ----------------------------
-river_tif = "data/babon_channel.tif"
-m.add_raster(river_tif, layer_name="River Network", opacity=0.95)
+# -----------------------------
+# Initialize Folium Map
+# -----------------------------
+m = folium.Map(location=[-7.1, 110.45], zoom_start=13, tiles='Cartodb Positron')
 
-# ----------------------------
-# Display Leafmap
-# ----------------------------
-m.to_streamlit(width="50%",height=800)
+# -----------------------------
+# Raster-to-PNG conversion with caching
+# -----------------------------
+@st.cache_data(show_spinner=False)
+def geotiff_to_temp_png(tif_path):
+    with rasterio.open(tif_path) as src:
+        bounds = src.bounds
+        # Multi-band RGBA
+        if src.count >= 4:
+            arr = src.read([1,2,3,4])
+            arr = np.transpose(arr, (1,2,0))
+            img = Image.fromarray(arr.astype(np.uint8), mode="RGBA")
+        elif src.count == 3:
+            arr = src.read([1,2,3])
+            arr = np.transpose(arr, (1,2,0))
+            img = Image.fromarray(arr.astype(np.uint8)).convert("RGBA")
+        else:
+            arr = src.read(1)
+            arr = np.where(arr == src.nodata, 0, arr)
+            arr = ((arr - arr.min()) / (arr.max()-arr.min()) * 255).astype(np.uint8)
+            img = Image.fromarray(arr).convert("RGBA")
+            # make zero values transparent
+            datas = img.getdata()
+            new_data = [(0,0,0,0) if item[0]==0 else item for item in datas]
+            img.putdata(new_data)
 
-# ----------------------------
-# Description Table Dropdown
-# ----------------------------
-table_choice = st.selectbox("Select Table Description", ["Slope", "LULC"], index=0)
+        # Save to temporary PNG
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        img.save(tmp_file.name)
+        return tmp_file.name, bounds
 
-# ----------------------------
-# Slope Classification Table
-# ----------------------------
+# -----------------------------
+# Add Selected Layers
+# -----------------------------
+temp_files = []  # keep track of temp files to clean up
+if show_slope:
+    png_file, bounds = geotiff_to_temp_png(slope_tif)
+    temp_files.append(png_file)
+    ImageOverlay(
+        name="Slope Map",
+        image=png_file,
+        bounds=[[bounds.bottom, bounds.left], [bounds.top, bounds.right]],
+        opacity=0.6,
+        interactive=True,
+        cross_origin=False,
+        zindex=1
+    ).add_to(m)
+
+if show_lulc:
+    png_file, bounds = geotiff_to_temp_png(lulc_tif)
+    temp_files.append(png_file)
+    ImageOverlay(
+        name=f"LULC {selected_date}",
+        image=png_file,
+        bounds=[[bounds.bottom, bounds.left], [bounds.top, bounds.right]],
+        opacity=0.6,
+        interactive=True,
+        cross_origin=False,
+        zindex=2
+    ).add_to(m)
+
+if show_river:
+    folium.GeoJson(
+        river_geojson,
+        name="River Network",
+        style_function=lambda feature: {
+            "color": "blue",
+            "weight": 2,
+            "opacity": 0.8
+        }
+    ).add_to(m)
+
+# -----------------------------
+# Display Folium Map
+# -----------------------------
+st_folium(m,width=None, height=800)
+
+# -----------------------------
+# Optional: Clean up temp PNGs (comment out if debugging)
+# -----------------------------
+#for f in temp_files:
+#    os.remove(f)
+
+# -----------------------------
+# Description Tables (Slope & LULC)
+# -----------------------------
+# Slope Table
 slope_data = {
     "Class": [1,2,3,4,5,6],
     "Slope Range (°)": ["0–2", ">2–5", ">5–8", ">8–15", ">15–25", ">25–33"],
@@ -514,11 +566,11 @@ slope_data = {
     "Color": ["white","honeydew","lightgreen","mediumseagreen","seagreen","darkgreen"]
 }
 df_slope = pd.DataFrame(slope_data)
-df_slope["Color"] = df_slope["Color"].apply(lambda c: f'<div style="width:25px;height:25px;background-color:{c};border-radius:4px;border:1px solid #ccc;"></div>')
+df_slope["Color"] = df_slope["Color"].apply(
+    lambda c: f'<div style="width:25px;height:25px;background-color:{c};border-radius:4px;border:1px solid #ccc;"></div>'
+)
 
-# ----------------------------
-# LULC Description Tables
-# ----------------------------
+# LULC Tables
 df_lanina = pd.DataFrame({
     "No": list(range(1,8)),
     "Class Name": ["Moist Evergreen Forest","Seasonally Moist Forest","Grassland","Agriculture","Bare Soil","Urban Fabric","Road / Pavement"],
@@ -533,24 +585,33 @@ df_elnino = pd.DataFrame({
                     "Actively irrigated or resilient cropland","Completely exposed earth","Built-up area","Impervious linear features"],
     "Color": ["darkgreen","saddlebrown","beige","yellow","tan","firebrick","gray"]
 })
-df_lanina["Color"] = df_lanina["Color"].apply(lambda c: f'<div style="width:25px;height:25px;background-color:{c};border-radius:4px;border:1px solid #ccc;"></div>')
-df_elnino["Color"] = df_elnino["Color"].apply(lambda c: f'<div style="width:25px;height:25px;background-color:{c};border-radius:4px;border:1px solid #ccc;"></div>')
+df_lanina["Color"] = df_lanina["Color"].apply(
+    lambda c: f'<div style="width:25px;height:25px;background-color:{c};border-radius:4px;border:1px solid #ccc;"></div>'
+)
+df_elnino["Color"] = df_elnino["Color"].apply(
+    lambda c: f'<div style="width:25px;height:25px;background-color:{c};border-radius:4px;border:1px solid #ccc;"></div>'
+)
 
-# ----------------------------
-# Display Table
-# ----------------------------
+# LULC phase mapping
+lulc_phase = {
+    "2020-09-15": "Normal",
+    "2021-09-30": "Normal",
+    "2022-09-15": "Normal",
+    "2023-09-20": "El Niño",
+    "2025-08-15": "Normal",
+}
+
+# Table selection
+table_choice = st.selectbox("Select Table Description", ["Slope", "LULC"], index=0)
+
+# Display table
 if table_choice == "Slope":
     st.subheader("🌾 Slope Classification (0–33°)")
     st.write(df_slope.to_html(escape=False, index=False), unsafe_allow_html=True)
 else:
-    normal_dates = ["2020-09-15","2021-09-30","2022-09-15","2025-08-15"]
-    if selected_date in normal_dates:
-        st.subheader(f"🌎 LULC Description – Normal Phase ({selected_date})")
-        st.write(df_lanina.to_html(escape=False, index=False), unsafe_allow_html=True)
-    else:
-        st.subheader(f"🌎 LULC Description – El Niño Phase ({selected_date})")
-        st.write(df_elnino.to_html(escape=False, index=False), unsafe_allow_html=True)
-
+    phase = lulc_phase[selected_date]
+    st.subheader(f"🌎 LULC Description – {phase} Phase ({selected_date})")
+    st.write(df_lanina.to_html(escape=False, index=False) if phase=="Normal" else df_elnino.to_html(escape=False, index=False), unsafe_allow_html=True)
 st.markdown(
     """
     <div id="lulcstatus" style="margin:5vw auto; max-width:90%; line-height:1.6; text-align:justify; color:white;">
@@ -589,17 +650,100 @@ st.markdown(
 )
 
 
-# ----------------------------
-# Map Adjustments: RPI, Runoff, Rainfall
-# ----------------------------
+# -----------------------------
+# Runoff Potential Index & Rainfall / Runoff Map
+# -----------------------------
 st.subheader("Runoff Potential Index & Rainfall / Runoff Map")
 
-m_rpi = leafmap.Map(center=[-7.1, 110.45], zoom=14, tiles='Cartodb Positron')
-m_rpi.add_raster("data/RPI_2025.tif", layer_name="RPI (Rendered)", opacity=1)
-m_rpi.add_raster("data/rainfall_babon.tif", layer_name="Rainfall (Interpolated)", opacity=0.95)
-m_rpi.add_raster("data/Q_map.tif", layer_name="Q (Runoff)", opacity=0.95)
-m_rpi.to_streamlit(height=800)
+# -----------------------------
+# Raster File Paths
+# -----------------------------
+raster_files = {
+    "RPI": "data/RPI_2025.tif",
+    "Rainfall": "data/rainfall_babon.tif",
+    "Q": "data/Q_map.tif"
+}
 
+# -----------------------------
+# Layer Checkboxes
+# -----------------------------
+show_rpi = st.checkbox("Show RPI Map", value=True)
+show_rainfall = st.checkbox("Show Rainfall Map", value=True)
+show_q = st.checkbox("Show Q Map", value=True)
+
+# -----------------------------
+# Initialize Folium Map
+# -----------------------------
+m_rpi = folium.Map(location=[-7.1, 110.45], zoom_start=13, tiles='Cartodb Positron')
+
+# -----------------------------
+# Cached raster → PNG converter
+# -----------------------------
+@st.cache_data(show_spinner=False)
+def geotiff_to_temp_png(tif_path):
+    with rasterio.open(tif_path) as src:
+        bounds = src.bounds
+        if src.count >= 4:
+            arr = src.read([1,2,3,4])
+            arr = np.transpose(arr, (1,2,0))
+            img = Image.fromarray(arr.astype(np.uint8), mode="RGBA")
+        elif src.count == 3:
+            arr = src.read([1,2,3])
+            arr = np.transpose(arr, (1,2,0))
+            img = Image.fromarray(arr.astype(np.uint8)).convert("RGBA")
+        else:
+            arr = src.read(1)
+            arr = np.where(arr == src.nodata, 0, arr)
+            arr = ((arr - arr.min()) / (arr.max()-arr.min()) * 255).astype(np.uint8)
+            img = Image.fromarray(arr).convert("RGBA")
+            datas = img.getdata()
+            new_data = [(0,0,0,0) if item[0]==0 else item for item in datas]
+            img.putdata(new_data)
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        img.save(tmp_file.name)
+        return tmp_file.name, bounds
+
+# -----------------------------
+# Add selected layers
+# -----------------------------
+temp_files = []
+if show_rpi:
+    png_file, bounds = geotiff_to_temp_png(raster_files["RPI"])
+    temp_files.append(png_file)
+    ImageOverlay(
+        name="RPI (Rendered)",
+        image=png_file,
+        bounds=[[bounds.bottom, bounds.left], [bounds.top, bounds.right]],
+        opacity=1.0,
+        interactive=True
+    ).add_to(m_rpi)
+
+if show_rainfall:
+    png_file, bounds = geotiff_to_temp_png(raster_files["Rainfall"])
+    temp_files.append(png_file)
+    ImageOverlay(
+        name="Rainfall (Interpolated)",
+        image=png_file,
+        bounds=[[bounds.bottom, bounds.left], [bounds.top, bounds.right]],
+        opacity=0.95,
+        interactive=True
+    ).add_to(m_rpi)
+
+if show_q:
+    png_file, bounds = geotiff_to_temp_png(raster_files["Q"])
+    temp_files.append(png_file)
+    ImageOverlay(
+        name="Q (Runoff)",
+        image=png_file,
+        bounds=[[bounds.bottom, bounds.left], [bounds.top, bounds.right]],
+        opacity=0.95,
+        interactive=True
+    ).add_to(m_rpi)
+
+# -----------------------------
+# Display Folium map
+# -----------------------------
+st_folium(m_rpi, width=None, height=800)
 
 # -----------------------------
 # Dropdown to select legend type
@@ -641,7 +785,6 @@ elif legend_option == "Discharge (Q)":
         "Description": ["Very Low", "Low", "Moderate", "High", "Very High"],
         "Color": ["#f7fbff", "#d7e6f5", "#c8ddf0", "#a3cce3", "#08306b"]
     })
-    # Apply color to cells
     def color_cells(val):
         return f'background-color: {val}; color: {"white" if val == "#08306b" else "black"}; text-align:center;'
     styled_df = df_q.style.applymap(color_cells, subset=["Color"])
@@ -665,11 +808,9 @@ elif legend_option == "Runoff Potential Index (RPI)":
             "Highly impervious or steep terrain (urban core, paved surfaces). Very low infiltration and rapid surface runoff generation.",
         ],
     })
-    # Render color boxes
     df_rpi["Color"] = df_rpi["Color"].apply(lambda c: f'<div style="width:25px; height:25px; background-color:{c}; border-radius:4px; border:1px solid #ccc;"></div>')
     st.write(df_rpi.to_html(escape=False, index=False), unsafe_allow_html=True)
     st.caption("Source: Dhakal, N. (2019). *Development of Guidance for Runoff Coefficient Selection and Modified Rational Unit Hydrograph Method for Hydrologic Design.*")
-
 st.markdown(
     """
     <div id="rpi_q" style="margin:5vw auto; max-width:90%; line-height:1.6; text-align:justify; color:white;">
@@ -716,17 +857,55 @@ st.markdown(
 st.subheader("Adjust Half-Basin Opacity")
 basin_opacity = st.slider("Half-Basin Opacity", min_value=0.0, max_value=1.0, value=0.7, step=0.05)
 
-basins_gdf = gpd.read_file("data/Runoff_statistic.geojson").to_crs(epsg=4326)
-basins_gdf['mean_Q'] = basins_gdf['_mean']
-norm = colors.Normalize(vmin=basins_gdf['mean_Q'].min(), vmax=basins_gdf['mean_Q'].max())
-cmap = cm.get_cmap('YlOrRd')
-basins_gdf['color'] = basins_gdf['mean_Q'].apply(lambda x: colors.to_hex(cmap(norm(x))))
-basins_gdf['style'] = basins_gdf.apply(lambda row: {"color": row['color'], "weight":2, "fillOpacity": basin_opacity}, axis=1)
+# ----------------------------
+# Load Styled GeoJSON
+# ----------------------------
+geojson_path = "data/Runoff_statistic_styled.geojson"
+try:
+    with open(geojson_path) as f:
+        basins_geojson = json.load(f)
+except FileNotFoundError:
+    st.error(f"❌ Styled GeoJSON not found: {geojson_path}")
+    st.stop()
 
+# ----------------------------
+# Apply Dynamic Opacity
+# ----------------------------
+for feature in basins_geojson['features']:
+    if 'style' in feature['properties']:
+        feature['properties']['style']['fillOpacity'] = basin_opacity
+
+# ----------------------------
+# Create Folium Map
+# ----------------------------
 st.subheader("Half-Basin Map (Mean Q)")
-m_basin = leafmap.Map(center=[-7.08,110.40], zoom=11, tiles='OpenStreetMap')
-m_basin.add_gdf(basins_gdf, layer_name="Half-Basin Mean Q", info_mode="on_click", style="style")
-m_basin.to_streamlit(height=800)
+m = folium.Map(location=[-7.1, 110.45], zoom_start=13, tiles='OpenStreetMap')
+
+# Define tooltip with all statistics
+tooltip = folium.GeoJsonTooltip(
+    fields=['mean_Q', 'med_Q', 'max_Q', 'min_Q', 'sum_Q', 'std_Q'],
+    aliases=['Mean Q', 'Median Q', 'Max Q', 'Min Q', 'Sum Q', 'Std Dev Q'],
+    localize=True,
+    sticky=False,
+    labels=True,
+    style="""
+        background-color: white;
+        border: 1px solid black;
+        border-radius: 3px;
+        padding: 5px;
+    """
+)
+
+# Add GeoJSON layer with style and full tooltip
+folium.GeoJson(
+    basins_geojson,
+    name="Half-Basin Mean Q",
+    style_function=lambda feature: feature['properties']['style'],
+    tooltip=tooltip  # ← use the full tooltip object here
+).add_to(m)
+
+# Render map
+st_folium(m,width=None, height=1000)
 
 st.markdown(
     """
@@ -920,7 +1099,7 @@ st.sidebar.markdown(
 
 
 # Separator
-st.sidebar.markdown('<hr style="margin-top:5px; margin-bottom:5px;">', unsafe_allow_html=True)
+st.sidebar.markdown('<hr style="margin-top:50px; margin-bottom:50px;">', unsafe_allow_html=True)
 st.sidebar.markdown("## 📊 Dashboard Metrics", unsafe_allow_html=True)
 st.sidebar.metric("Flood Incidents", len(flood_map_df))
 st.sidebar.metric("Stations", len(station_map_df)-1)
